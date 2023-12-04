@@ -1,4 +1,4 @@
-setwd("/media/barbitoff/DATA/Working issues/WES/microRNA")
+setwd("/media/barbitoff/DATA/Working issues/WES/microRNA/t2d_mirna/")
 library(caret)
 library(ggplot2)
 library(reshape2)
@@ -26,6 +26,8 @@ ggplot(na.omit(all_mir), aes(x=Z__K3_S55.UMIs, y=Z__K3_S55.READs)) + geom_point(
 all_mir[all_mir$Z__K3_S55.UMIs > 500 & all_mir$Z__K3_S55.READs < 100, ]
 colnames(all_mir)
 all_mir = all_mir[, 1:67]
+
+hist(colSums(all_mir[, 2:67]))
 #all_mir = all_mir[, c(1, 68:133)]
 write.table(colnames(all_mir), file='sample_ids.txt', quote=F, row.names=F)
 
@@ -46,7 +48,7 @@ dds <- DESeqDataSetFromMatrix(countData = na.omit(mir_data),
                               colData = design,
                               design = ~ Diabetes)
 dds <- DESeq(dds)
-res_full  <- results(dds, contrast=c("Diabetes","control","t2d"))
+res_full  <- results(dds, contrast=c("Diabetes","t2d","control"))
 res_df <- na.omit(as.data.frame(res_full))
 head(res_df)
 table(res_df$padj < 0.05)
@@ -54,6 +56,10 @@ res_df$regulation = ifelse(res_df$padj < 0.05 & res_df$log2FoldChange >= 1, 'Up'
           ifelse(res_df$padj < 0.05 & res_df$log2FoldChange <= -1, 'Down', 'none'))
 res_df$trait = 'T22D'
 table(res_df$regulation)
+
+# Exporting for T2D
+write.table(res_df[order(res_df$padj, decreasing = F), ], 
+            file='DE_results_T2D.tsv', col.names=NA, sep='\t')
 
 # Checking known marker miRNA
 known_mirna <- c('hsa-miR-126', 'hsa-miR-375', 'hsa-miR-34a', 
@@ -66,13 +72,18 @@ dds_ob <- DESeqDataSetFromMatrix(countData = na.omit(mir_data),
                               colData = design,
                               design = ~ Obesity)
 dds_ob <- DESeq(dds_ob)
-res_full_ob  <- results(dds_ob, contrast=c("Obesity","normal","obese"))
+res_full_ob  <- results(dds_ob, contrast=c("Obesity","obese","normal"))
 res_df_ob <- na.omit(as.data.frame(res_full_ob))
 head(res_df_ob)
 table(res_df_ob$padj < 0.05)
 res_df_ob$regulation = ifelse(res_df_ob$padj < 0.05 & res_df_ob$log2FoldChange >= 1, 
   'Up', ifelse(res_df_ob$padj < 0.05 & res_df_ob$log2FoldChange <= -1, 'Down', 'none'))
 res_df_ob$trait = 'Obesity'
+table(res_df_ob$regulation)
+
+# Exporting DE results for obesity
+write.table(res_df_ob[order(res_df_ob$padj, decreasing = F), ], 
+            file='DE_results_Obesity.tsv', col.names=NA, sep='\t')
 
 
 # By famhistory
@@ -80,7 +91,7 @@ dds_fh <- DESeqDataSetFromMatrix(countData = na.omit(mir_data),
                                  colData = design,
                                  design = ~ FamHistory)
 dds_fh <- DESeq(dds_fh)
-res_full_fh  <- results(dds_fh, contrast=c("FamHistory","no","yes"))
+res_full_fh  <- results(dds_fh, contrast=c("FamHistory","yes","no"))
 res_df_fh <- na.omit(as.data.frame(res_full_fh))
 head(res_df_fh)
 table(res_df_fh$padj < 0.05)
@@ -89,6 +100,11 @@ res_df_fh[res_df_fh$padj < 0.05, ]
 res_df_fh$regulation = ifelse(res_df_fh$padj < 0.05 & res_df_fh$log2FoldChange >= 1, 
     'Up', ifelse(res_df_fh$padj < 0.05 & res_df_fh$log2FoldChange <= -1, 'Down', 'none'))
 res_df_fh$trait = 'Family history'
+table(res_df_fh$regulation)
+
+# Exporting DE results for family history
+write.table(res_df_fh[order(res_df_fh$padj, decreasing = F), ], 
+            file='DE_results_FamHistory.tsv', col.names=NA, sep='\t')
 
 all_res = rbind(res_df, res_df_ob, res_df_fh)
 all_volc <- ggplot(all_res, aes(x=log2FoldChange, 
@@ -158,6 +174,8 @@ dev.off()
 # Candidates
 selected_mirna = c('hsa-miR-5588-5p', 'hsa-miR-125b-2-3p', 
                    'hsa-miR-496', 'hsa-miR-1284')
+res_df[selected_mirna, ]
+
 sapply(selected_mirna, function(x) x %in% signif_t2d)
 sapply(selected_mirna, function(x) x %in% signif_ob)
 sapply(selected_mirna, function(x) x %in% signif_fh)
