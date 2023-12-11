@@ -22,16 +22,20 @@ myCol <- brewer.pal(3, "Pastel2")
 all_mir = read.table('miRNA_all.tsv', sep='\t', header=T)
 all_mir = all_mir[all_mir$miRNA != 'piRNA', ]
 
+# Exploring the UMI vs READ counts
 ggplot(na.omit(all_mir), aes(x=Z__K9_S33.UMIs, y=Z__K9_S33.READs)) + geom_point()
+# There are strange outliers
 all_mir[all_mir$Z__K9_S33.UMIs > 500 & all_mir$Z__K9_S33.READs < 100, ]
+# Looking at the general trend
 table(all_mir$Z__K9_S33.UMIs < all_mir$Z__K9_S33.READs)
 table(sapply(1:nrow(all_mir), 
              function(x) ifelse(all_mir$Z__K9_S33.UMIs[x] < all_mir$Z__K9_S33.READs[x],
             'less', ifelse(all_mir$Z__K9_S33.UMIs[x] == all_mir$Z__K9_S33.READs[x],
             'equals', 'more'))))
-
-
+sum(all_mir$Z__K9_S33.UMIs)
+sum(all_mir$Z__K9_S33.READs)
 # The numbers look OK, so we procered with UMIs despite several strange miRNAs.
+
 colnames(all_mir)
 all_mir = all_mir[, 1:67]
 
